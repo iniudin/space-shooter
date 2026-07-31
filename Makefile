@@ -6,7 +6,7 @@ LDFLAGS  := -L/opt/homebrew/lib -lraylib \
             -framework IOKit \
             -framework CoreVideo
 
-TARGET   := build/benteng
+TARGET   := build/main
 SRCS     := $(wildcard *.cpp)
 OBJS     := $(patsubst %.cpp, build/%.o, $(SRCS))
 
