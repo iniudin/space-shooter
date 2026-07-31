@@ -1,0 +1,12 @@
+---
+# Base the configuration on a standard style (e.g., LLVM, Google, Chromium)
+BasedOnStyle: LLVM
+
+# Set the indentation size (e.g., 4 spaces)
+IndentWidth: 4
+
+# Choose whether to use tabs or spaces (Options: None, UseTabs, ForIndentation, Always)
+UseTab: Never
+
+# Optional: Ensure case labels inside a switch block are indented
+IndentCaseLabels: true
