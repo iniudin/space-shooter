@@ -1,3 +1,4 @@
+#include "HUD.h"
 #include "Player.h"
 #include "raylib.h"
 
@@ -20,6 +21,7 @@ int main() {
         BeginDrawing();
         ClearBackground(DARKGRAY);
         DrawPlayer(player);
+        DrawSpeed(player);
         EndDrawing();
     }
 
