@@ -4,13 +4,13 @@
 void UpdatePlayer(Player &player, int screenWidth, int screenHeight) {
     float delta = GetFrameTime();
 
-    if ((IsKeyDown(KEY_W) && player.position.y > 0))
+    if ((IsKeyDown(KEY_UP) && player.position.y > 0))
         player.position.y -= player.speed * delta;
-    if ((IsKeyDown(KEY_S) && player.position.y < screenHeight - player.size))
+    if ((IsKeyDown(KEY_DOWN) && player.position.y < screenHeight - player.size))
         player.position.y += player.speed * delta;
-    if ((IsKeyDown(KEY_A) && player.position.x > 0))
+    if ((IsKeyDown(KEY_LEFT) && player.position.x > 0))
         player.position.x -= player.speed * delta;
-    if ((IsKeyDown(KEY_D) && player.position.x < screenWidth - player.size))
+    if ((IsKeyDown(KEY_RIGHT) && player.position.x < screenWidth - player.size))
         player.position.x += player.speed * delta;
 }
 

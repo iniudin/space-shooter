@@ -1,5 +1,5 @@
 #pragma once
 
-#include "Player.h"
+void DrawSpeed(int speed);
 
-void DrawSpeed(Player player);
+void DrawBulletCount(int count);

@@ -1,7 +1,10 @@
 #include "HUD.h"
-#include "Player.h"
 #include "raylib.h"
 
-void DrawSpeed(Player player) {
-    DrawText(TextFormat("Speed %.0f", player.speed), 10, 10, 30, LIGHTGRAY);
+void DrawSpeed(int speed) {
+    DrawText(TextFormat("Speed %d", speed), 10, 10, 30, LIGHTGRAY);
+};
+
+void DrawBulletCount(int count) {
+    DrawText(TextFormat("Bullet: %d", count), 10, 50, 30, LIGHTGRAY);
 };
