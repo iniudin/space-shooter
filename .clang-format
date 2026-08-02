@@ -10,3 +10,11 @@ UseTab: Never
 
 # Optional: Ensure case labels inside a switch block are indented
 IndentCaseLabels: true
+
+# Force function arguments onto new lines
+ColumnLimit: 80
+AlignAfterOpenBracket: BlockIndent
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
+BinPackParameters: false
