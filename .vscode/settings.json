@@ -1,9 +1,0 @@
-{
-    "code-runner.executorMap": {
-        "cpp": "make run"
-    },
-    "code-runner.runInTerminal": true,
-    "code-runner.saveFileBeforeRun": true,
-    "code-runner.clearPreviousOutput": true,
-    "code-runner.ignoreSelection": true
-}
