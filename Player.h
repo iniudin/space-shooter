@@ -5,9 +5,9 @@
 struct Player {
     Vector2 position;
     float speed;
-    int size;
+    Vector2 size;
 };
 
-void UpdatePlayer(Player &player, int screenWidth, int screenHeight);
+void UpdatePlayer(Player &player, float screenWidth, float screenHeight);
 
-void DrawPlayer(Player player);
+void DrawPlayer(const Player &player, const Texture2D &texture, float frame);

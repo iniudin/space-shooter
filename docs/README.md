@@ -1,4 +1,4 @@
-# Benteng — Game Dev Docs
+# Space Shooter — Game Dev Docs
 
 Learning C++ game development with raylib, from absolute zero.
 
@@ -9,4 +9,5 @@ Learning C++ game development with raylib, from absolute zero.
 - [03 — Splitting Into Multiple Files](03-splitting-into-files.md)
 - [04 — Shooting Bullets](04-shooting-bullets.md)
 - [05 — Enemies](05-enemies.md)
-- [06 — Assets & Sprite Animation](06-assets-and-sprite-animation.md) ← you are here
+- [06 — Sprites, Animation & Sizes That Can't Lie](06-assets-and-sprite-animation.md)
+- [07 — SOLID & Abstract Entity Classes](07-solid-and-entity-classes.md) ← you are here

@@ -12,4 +12,4 @@ struct Enemy {
 };
 
 void UpdateEnemies(std::vector<Enemy> &enemies, std::vector<Bullet> &bullets);
-void DrawEnemies(std::vector<Enemy> &enemies);
+void DrawEnemies(const std::vector<Enemy> &enemies, const Texture2D &texture);

@@ -11,4 +11,4 @@ struct Bullet {
 };
 
 void UpdateBullets(std::vector<Bullet> &bullets);
-void DrawBullets(const std::vector<Bullet> &bullets);
+void DrawBullets(const std::vector<Bullet> &bullets, const Texture2D &texture);
