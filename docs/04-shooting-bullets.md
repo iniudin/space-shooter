@@ -411,7 +411,7 @@ before `BeginDrawing()`, in the update section.
 ## What Your Project Looks Like Now
 
 ```
-benteng/
+space-shooter/
 ├── main.cpp        ← director: loop, spawning, wiring
 ├── Player.h/.cpp   ← what a Player is and does
 ├── Bullet.h/.cpp   ← what a Bullet is and does

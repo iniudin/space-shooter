@@ -137,10 +137,10 @@ know that file exists. Your build command changes from:
 
 ```bash
 # Before — only one file
-clang++ main.cpp -o benteng -lraylib ...
+clang++ main.cpp -o space-shooter -lraylib ...
 
 # After — both files
-clang++ main.cpp Player.cpp -o benteng -lraylib ...
+clang++ main.cpp Player.cpp -o space-shooter -lraylib ...
 ```
 
 If you forget `Player.cpp`, the linker will scream at you:
@@ -273,7 +273,7 @@ It should look something like this (exact flags may vary):
     "main.cpp",
     "Player.cpp",
     "-o",
-    "benteng",
+    "space-shooter",
     "-lraylib",
     ...
 ]
@@ -297,7 +297,7 @@ That is the point of a refactor: same behavior, better structure.
 ## What Your Project Looks Like Now
 
 ```
-benteng/
+space-shooter/
 ├── main.cpp        ← game director, the loop
 ├── Player.h        ← what a Player IS (struct + function signatures)
 ├── Player.cpp      ← how Player WORKS (function bodies)

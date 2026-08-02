@@ -502,7 +502,7 @@ Build the project. Fix any errors. Then test:
 ## What Your Project Looks Like Now
 
 ```
-benteng/
+space-shooter/
 ├── main.cpp        ← director: loop, timers, spawning, wiring
 ├── Player.h/.cpp   ← what a Player is and does
 ├── Bullet.h/.cpp   ← what a Bullet is and does
@@ -643,4 +643,4 @@ DrawText(TextFormat("Score: %d", score), 10, 130, 20, WHITE);
 
 ## Next
 
-→ Chapter 06 — [Assets & Sprite Animation](06-assets-and-sprite-animation.md) (load textures, sprite sheets, and animating the engine flame)
+→ Chapter 06 — [Sprites, Animation & Sizes That Can't Lie](06-assets-and-sprite-animation.md) (load textures, sprite sheets, animation, and deriving every size from the texture)
