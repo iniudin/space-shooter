@@ -19,6 +19,12 @@ void UpdateBullets(std::vector<Bullet> &bullets) {
 
 void DrawBullets(const std::vector<Bullet> &bullets) {
     for (const Bullet &b : bullets) {
-        DrawRectangle((int)b.position.x, (int)b.position.y, 6, 16, YELLOW);
+        DrawRectangle(
+            (int)b.position.x,
+            (int)b.position.y,
+            b.size.x,
+            b.size.y,
+            YELLOW
+        );
     }
 }

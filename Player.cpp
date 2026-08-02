@@ -15,6 +15,11 @@ void UpdatePlayer(Player &player, int screenWidth, int screenHeight) {
 }
 
 void DrawPlayer(Player player) {
-    DrawRectangle((int)player.position.x, (int)player.position.y, player.size,
-                  player.size, LIGHTGRAY);
+    DrawRectangle(
+        (int)player.position.x,
+        (int)player.position.y,
+        player.size,
+        player.size,
+        LIGHTGRAY
+    );
 };
