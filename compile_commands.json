@@ -1,0 +1,19 @@
+[
+  {
+    "file": "src/main.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++17",
+      "-g",
+      "-Wall",
+      "-I/opt/homebrew/include",
+      "-Isrc",
+      "-c",
+      "src/main.cpp",
+      "-o",
+      "build/main.o"
+    ],
+    "directory": "/Users/udin/Documents/Idea/space-shooter",
+    "output": "build/main.o"
+  }
+]

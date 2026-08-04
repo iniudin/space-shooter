@@ -1,5 +1,5 @@
 CXX      := g++
-CXXFLAGS := -std=c++17 -g -Wall -I/opt/homebrew/include
+CXXFLAGS := -std=c++17 -g -Wall -I/opt/homebrew/include -Isrc
 LDFLAGS  := -L/opt/homebrew/lib -lraylib \
             -framework OpenGL \
             -framework Cocoa \
@@ -7,8 +7,8 @@ LDFLAGS  := -L/opt/homebrew/lib -lraylib \
             -framework CoreVideo
 
 TARGET   := build/main
-SRCS     := $(wildcard *.cpp)
-OBJS     := $(patsubst %.cpp, build/%.o, $(SRCS))
+SRCS     := $(wildcard src/*.cpp)
+OBJS     := $(patsubst src/%.cpp, build/%.o, $(SRCS))
 
 .PHONY: all run clean
 
@@ -18,7 +18,7 @@ $(TARGET): $(OBJS)
 	@mkdir -p build
 	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
 
-build/%.o: %.cpp
+build/%.o: src/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 

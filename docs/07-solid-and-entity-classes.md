@@ -1,113 +1,163 @@
 # Chapter 07 — SOLID & Abstract Entity Classes
 
-This is the chapter that answers the feeling you have had since Chapter 06:
-
-> *"I can't build an abstract class in my own game."*
-
-Good news: that feeling is **correct** — but not for the reason you think. It is
-not a gap in your skill. It is that until now your code gave you no good *place*
-for an abstraction to live. This chapter names that place and hands you the
-toolbox — the five SOLID principles — to put one there cleanly.
-
-It is also a warning: **do not sprinkle abstract classes everywhere because they
-sound fancy.** Abstraction has a real cost (indirection, boilerplate, slightly
-harder debugging). The best place to *feel* that cost is a tiny game like this —
-where you can weigh it against the payoff on a single screen.
-
----
-
 ## What You Will Learn
 
-- Why abstraction "won't fit" your code yet (the god function, structs, free
-  functions)
-- What SOLID stands for, each letter tied to a real change in *this* game
-- How to write an abstract base class `Entity` — a class you cannot instantiate,
-  only subclass
-- `virtual`, pure virtual (`= 0`), `override`, and the virtual destructor
-- How the game loop gets *shorter* when entities Update and Draw themselves
-- `std::vector<std::unique_ptr<Entity>>` — a polymorphic container
-- Why collision is the one place abstraction does *not* cleanly fit, and what to
-  do about it (a `kind()` tag)
-- The three biggest traps: "abstraction theatre", a fat base class, and the
-  `dynamic_cast` habit
+- What a "God Function" is and why your `main.cpp` has become one
+- What the five SOLID principles mean — each one tied to a real change in this
+  game
+- What an abstract class is and how to write one in C++ (`virtual`, `= 0`,
+  `override`)
+- How to create an `Entity` base class that Player, Enemy, and Bullet inherit
+  from
+- What a virtual destructor is and why you must have one
+- How to store different entity types in one container with
+  `std::vector<std::unique_ptr<Entity>>`
+- How to write a `Game` class that replaces the god function
+- How collision works when everything is behind an abstract base
+- Common traps: fat base classes, `dynamic_cast`, abstraction for no reason
 
 ---
 
-## Part 1 — Why abstraction won't fit your code today
+## The Plan
 
-Open `main.cpp`. Count how many jobs that one file does:
+By the end of this chapter your game will play **exactly the same** — same
+enemies, same bullets, same sprites. But the code will be organized completely
+differently:
 
-1. creates the window
-2. loads and checks all four textures
-3. runs the enemy spawner (and the buggy `gameTime` we fixed in ch07)
-4. fires bullets
-5. updates the player, enemies, bullets, and the animation frame
-6. draws every `DrawXxx`, plus the HUD
+1. An abstract `Entity` base class with `Update()` and `Draw()`
+2. `Player`, `Enemy`, and `Bullet` as concrete classes that inherit from
+   `Entity`
+3. A `Game` class that owns the window, textures, entities, and the game loop
+4. A `main.cpp` that is only 3 lines long
 
-That is a **God Function**: too many responsibilities squeezed into one place.
-An abstract class needs a boundary to *live behind*, but a god function has no
-walls — so there is nowhere to draw it.
+You will build it in this order:
 
-Meanwhile your entities are plain `struct` data bags, and their behavior lives
-in free functions named after the type: `UpdateEnemies`, `UpdateBullets`,
-`DrawEnemies`, `DrawPlayer`. The code knows each type by **name**, not by a
-**common interface**. So there is nothing yet to inherit *from*.
-
-Then, the moment you start typing `class Enemy`, you hit a wall: "which methods
-do I actually share? Update? Draw? But Enemy and Bullet need different Draw
-bodies..." — and you give up. That is the *exact* moment you feel *"I can't
-make an abstract class."*
-
-The reframe:
-
-> **Abstraction is not a trophy to collect. It is a boundary you draw where a
-> family of things behaves the same.**
-
-You have exactly one such family here: **"every object on the field that updates
-once per frame and draws once per frame."** Player, Enemy, Bullet — and
-tomorrow PowerUp, Asteroid — are all members. That family is your abstract
-class.
+1. Look at the current code and understand what is wrong with it
+2. Learn the SOLID principles (the "why")
+3. Create the `Entity` base class
+4. Convert `Player` to a class that inherits from `Entity`
+5. Convert `Enemy` the same way
+6. Convert `Bullet` the same way
+7. Create the `Game` class that ties everything together
+8. Handle collision between different entity types
+9. Shrink `main.cpp` to 3 lines
 
 ---
 
-## Part 2 — The five principles on one ruler
+## Part 1 — What is wrong with `main.cpp` right now?
 
-Keep this table. Every decision in the rest of the chapter is one of these:
+Open your `main.cpp`. Count the jobs that one function does:
 
-| Letter | Name | In this game |
+1. Creates the window
+2. Loads all four textures
+3. Creates the player and sets its fields
+4. Runs the enemy spawner on a timer
+5. Fires bullets when you press X
+6. Calls `UpdatePlayer`, `UpdateEnemies`, `UpdateBullets` — each by name
+7. Calls `DrawPlayer`, `DrawEnemies`, `DrawBullets` — each by name
+8. Draws the background and HUD
+9. Unloads textures
+
+That is a **God Function** — one function doing too many unrelated jobs. The
+problem is not that it "looks bad". The problem is practical:
+
+- **Adding a new thing is hard.** Want to add a PowerUp? You need to add a
+  struct, a vector, a spawn timer, an Update call, a Draw call, collision
+  checks — all inside `main.cpp`. You will forget one of those steps.
+- **Every type is handled by name.** The code says `UpdateEnemies(enemies, …)`,
+  `UpdateBullets(bullets)`, `DrawPlayer(player, …)`. There is no way to say
+  "update everything" in one line — you must list each type by hand.
+
+The fix: give each object its own `Update()` and `Draw()`, then store them all
+in one list and loop over it. That is what an abstract class lets you do.
+
+---
+
+## Part 2 — The five SOLID principles
+
+SOLID is five rules for organizing classes. You do not need to memorize them —
+just know what each one feels like in your game:
+
+| Letter | Name | What it means in this game |
 |---|---|---|
-| **S** | Single Responsibility | each class does one job; Game no longer stores + moves every bullet by hand |
-| **O** | Open for extension, **Closed** for modification | add a new entity kind by writing a class; do NOT edit the loop to add it |
-| **L** | Liskov Substitution | a subclass behaves like an `Entity`, so one loop over `unique_ptr<Entity>` is safe for all of them |
-| **I** | Interface Segregation | keep the base thin; don't force `Bullet` (or a Power-Up) to fake fields it ignores |
-| **D** | Dependency Inversion | the Game loop depends on abstract `Entity`, not on `Player` / `Enemy` / `Bullet` by name |
+| **S** | Single Responsibility | Each class does one job. `Game` runs the loop. `Enemy` knows how to move and draw itself. `main.cpp` does not do everything. |
+| **O** | Open/Closed | To add a new enemy type, you write a new class. You do **not** edit the game loop. |
+| **L** | Liskov Substitution | A `ZigzagEnemy` can go anywhere an `Entity` can. The loop does not care which subclass it is. |
+| **I** | Interface Segregation | The base class stays thin. Do not put `health` in the base — Bullet does not have health. |
+| **D** | Dependency Inversion | The game loop depends on `Entity` (the abstraction), not on `Player`/`Enemy`/`Bullet` by name. |
 
-Read them as a chain: **S** gives each class one job, **O** makes new kinds
-cheap to add, **L** makes "treat everyone as Entity" legal, **I** stops you
-from polluting the base with irrelevant junk, **D** turns "I know every type by
-hand" into "I handle the family."
+You will feel each of these as you build the code below.
 
 ---
 
-## Part 3 — The abstract base: `Entity`
+## Part 3 — The abstract base class: `Entity`
 
-Create a new file pair. This handful of lines is the heart of the chapter.
+### What your structs look like now
 
-**Entity.h**
+Here is what you have today. Look at the pattern:
+
+```cpp
+// Player.h                       // Enemy.h                        // Bullet.h
+struct Player {                   struct Enemy {                    struct Bullet {
+    Vector2 position;                 Vector2 position;                 Vector2 position;
+    Vector2 size;                     Vector2 size;                     Vector2 size;
+    float speed;                      float speed;                      float speed;
+};                                    int health;                       int damage;
+                                  };                                };
+```
+
+All three have `position`, `size`, and `speed`. All three get updated every
+frame. All three get drawn every frame. The difference is *how* — the player
+moves with arrow keys, the enemy falls down, the bullet flies up. But the
+shape is the same: **something on the field that updates and draws.**
+
+That shared shape is your abstract class.
+
+### What `Entity` will hold
+
+Only the fields that **every** entity needs:
+
+```
+position  — where it is (Vector2)
+size      — how big it is (Vector2)
+active    — is it alive? (bool)
+```
+
+And three methods every entity must provide:
+
+```
+Update(dt)  — move yourself for this frame
+Draw()      — draw yourself
+kind()      — "I am a Player / Enemy / Bullet" (for collision)
+```
+
+**Why not `speed`, `health`, or `texture`?**
+
+- A PowerUp might not move → no `speed`
+- A Bullet has no health → no `health`
+- Each child has its own texture → no shared `texture`
+
+Putting those in the base would force every child to carry fields it does not
+use. That violates **I** (Interface Segregation): keep the base thin.
+
+### Create `Entity.h`
+
+Create a new file `Entity.h`:
 
 ```cpp
 #pragma once
 #include "raylib.h"
 
-// A "tag" used later to route collisions. We explain it in Part 7.
+// A tag that identifies what kind of entity this is.
+// Used for collision — explained in Part 8.
 enum class EntityKind {
     Player,
     Enemy,
     Bullet,
-    // add PowerUp, Asteroid ... as you add new kinds
 };
 
 // Abstract base class: "an object on the field that updates and draws."
+// You CANNOT create an Entity directly — only subclasses.
 class Entity {
 public:
     Vector2 position{};
@@ -115,38 +165,176 @@ public:
     bool active = true;
 
     Entity() = default;
-    virtual ~Entity() = default;          // REQUIRED with polymorphic pointers
+    virtual ~Entity() = default;          // REQUIRED — explained below
 
-    virtual void Update(float dt) = 0;    // pure virtual -> Entity is abstract
-    virtual void Draw() const = 0;
+    virtual void Update(float dt) = 0;    // pure virtual — explained below
+    virtual void Draw() const = 0;        // pure virtual
+    virtual EntityKind kind() const = 0;  // pure virtual
 
-    virtual Rectangle bounds() const;     // shared default: position + size
-    virtual EntityKind kind() const = 0;  // collision tag, see Part 7
+    Rectangle bounds() const;             // shared: the collision rectangle
 };
 
+// Inline because it is so small — no .cpp file needed.
 inline Rectangle Entity::bounds() const {
     return { position.x, position.y, size.x, size.y };
 }
 ```
 
-Three details that matter:
+### Three new C++ concepts — explained
 
-- **`= 0` is a pure virtual.** A class with even one of those *cannot* be
-  created directly (`Entity e;` is a compile error). It exists only as a base.
-  That is the C++ spelling of **abstract class**.
-- **`virtual ~Entity()`.** If you ever hold an `Entity*` and delete through it,
-  the compiler must pick the *derived* destructor. Without this line,
-  `std::unique_ptr<Entity>` deleting a `Bullet` is undefined behavior. Rule:
-  any polymorphic class gets a virtual destructor.
-- **`bounds()`** is the rectangle math you already wrote in `UpdateEnemies`:
-  `{ position.x, position.y, size.x, size.y }`. And it honors Chapter 06:
-  `size` comes from the texture via `GetFrameSize`.
+**1. `virtual void Update(float dt) = 0;` — pure virtual function**
+
+The `= 0` means "this class does NOT provide a body for this function. Every
+subclass MUST write its own." A class with even one `= 0` function is called
+**abstract** — you cannot create it directly:
+
+```cpp
+Entity e;  // ❌ compile error — Entity is abstract
+```
+
+This is exactly what we want. `Entity` is a *concept* (something that updates
+and draws), not a real object. Only `Player`, `Enemy`, `Bullet` are real.
+
+**2. `virtual` — lets subclasses override**
+
+When you write `virtual void Draw() const = 0;` in the base, and then a
+subclass writes `void Draw() const override { ... }`, the correct version is
+called even through a base pointer:
+
+```cpp
+Entity* e = new Enemy(…);
+e->Draw();  // calls Enemy::Draw, not Entity::Draw
+```
+
+Without `virtual`, the compiler would call `Entity::Draw` (which does not exist)
+and your program would be wrong.
+
+**3. `virtual ~Entity() = default;` — virtual destructor**
+
+If you hold an `Entity*` that actually points to an `Enemy`, and you delete it:
+
+```cpp
+Entity* e = new Enemy(…);
+delete e;  // which destructor runs?
+```
+
+Without `virtual` on the destructor, only `Entity`'s destructor runs — the
+`Enemy` part is never cleaned up. That is **undefined behavior**.
+
+With `virtual ~Entity()`, the correct destructor (Enemy's, then Entity's) is
+called. Rule: **any class used as a polymorphic base gets a virtual
+destructor.**
 
 ---
 
-## Part 4 — The concrete children
+## Part 4 — Convert `Player` to inherit from `Entity`
 
-**Enemy.h**
+This is the biggest child because the Player has keyboard input, screen
+clamping, and animation. Take it step by step.
+
+### `Player.h` — the new version
+
+Replace the entire file:
+
+```cpp
+#pragma once
+#include "Entity.h"
+
+class Player : public Entity {
+public:
+    // Constructor: needs the texture (for size), screen bounds, and speed.
+    Player(Texture2D texture, float screenW, float screenH, float speed);
+
+    void Update(float dt) override;
+    void Draw() const override;
+    EntityKind kind() const override { return EntityKind::Player; }
+
+    void TakeDamage(int amount);
+    int Health() const { return health; }
+
+private:
+    Texture2D texture;
+    float screenW;
+    float screenH;
+    float speed;
+    float animTimer = 0.0f;
+    int health = 3;
+};
+```
+
+**What changed from the old `struct Player`?**
+
+| Before (struct) | After (class) |
+|---|---|
+| `position`, `size`, `speed` were public fields you set from `main.cpp` | `position` and `size` come from `Entity`. `speed` is private — the Player manages itself. |
+| `UpdatePlayer(player, screenW, screenH)` was a free function | `player.Update(dt)` — the Player updates itself |
+| `DrawPlayer(player, texture, frame)` was a free function | `player.Draw()` — the Player draws itself, it owns its texture |
+| No health | `health` added (we will use it in collision) |
+
+### `Player.cpp` — the new version
+
+Replace the entire file:
+
+```cpp
+#include "Player.h"
+#include "Sprite.h"
+
+Player::Player(Texture2D texture, float screenW, float screenH, float speed)
+    : texture(texture), screenW(screenW), screenH(screenH), speed(speed)
+{
+    position = { 400.0f, 400.0f };
+    size = GetFrameSize(texture, 4.0f, 2.0f);  // 4 frames, 2x scale
+}
+
+void Player::Update(float dt) {
+    if (IsKeyDown(KEY_UP)    && position.y > 0.0f)
+        position.y -= speed * dt;
+    if (IsKeyDown(KEY_DOWN)  && position.y < screenH - size.y)
+        position.y += speed * dt;
+    if (IsKeyDown(KEY_LEFT)  && position.x > 0.0f)
+        position.x -= speed * dt;
+    if (IsKeyDown(KEY_RIGHT) && position.x < screenW - size.x)
+        position.x += speed * dt;
+
+    animTimer += dt;
+}
+
+void Player::Draw() const {
+    float frameWidth = (float)texture.width / 4.0f;
+    float frameHeight = (float)texture.height;
+    int frame = (int)(animTimer / 0.1f) % 4;
+
+    Rectangle source = {
+        frame * frameWidth, 0.0f,
+        frameWidth, frameHeight
+    };
+    Rectangle dest = bounds();  // same rectangle as collision!
+    DrawTexturePro(texture, source, dest, {0, 0}, 0.0f, WHITE);
+}
+
+void Player::TakeDamage(int amount) {
+    health -= amount;
+    if (health <= 0) active = false;
+}
+```
+
+Notice:
+
+- **`Update` and `Draw` own all their logic.** No free function, no passing the
+  texture around from main.
+- **`Draw()` uses `bounds()`** for the destination rectangle — the same
+  rectangle used for collision. Drawing and collision can never disagree (the
+  lesson from Chapter 06).
+- **The constructor sets `position` and `size`** — `main.cpp` will never touch
+  those fields directly.
+
+---
+
+## Part 5 — Convert `Enemy` to inherit from `Entity`
+
+### `Enemy.h` — the new version
+
+Replace the entire file:
 
 ```cpp
 #pragma once
@@ -161,308 +349,634 @@ public:
     EntityKind kind() const override { return EntityKind::Enemy; }
 
     int Health() const { return health; }
-    void TakeDamage(int amount) {
-        health -= amount;
-        active = health > 0;             // dies when health hits 0
-    }
+    void TakeDamage(int amount);
 
 private:
     Texture2D texture;
     int health;
     float speed;
-    float animTimer;
+    float animTimer = 0.0f;
 };
 ```
 
-**Enemy.cpp**
+### `Enemy.cpp` — the new version
+
+Replace the entire file:
 
 ```cpp
 #include "Enemy.h"
-#include "Sprite.h"                     // GetFrameSize from Chapter 06
+#include "Sprite.h"
 
 Enemy::Enemy(Texture2D texture, Vector2 start, int health, float speed)
-    : texture(texture), health(health), speed(speed), animTimer(0.0f) {
+    : texture(texture), health(health), speed(speed)
+{
     position = start;
-    size = GetFrameSize(texture, 4.0f, 2.0f);   // 4 frames, 2x scale
+    size = GetFrameSize(texture, 4.0f, 2.0f);  // 4 frames, 2x scale
 }
 
 void Enemy::Update(float dt) {
-    position.y += speed * dt;                   // fall down
+    position.y += speed * dt;      // fall down
     animTimer += dt;
-    if (position.y > 480.0f) active = false;    // fell off the bottom
+    if (position.y > 480.0f) active = false;  // fell off the bottom
 }
 
 void Enemy::Draw() const {
-    int frame = (int)(animTimer / 0.1f) % 4;
     float frameWidth = (float)texture.width / 4.0f;
-    Rectangle source = { frame * frameWidth, 0.0f,
-                         frameWidth, (float)texture.height };
-    Rectangle dest = bounds();                  // the SAME rectangle as collision
+    float frameHeight = (float)texture.height;
+    int frame = (int)(animTimer / 0.1f) % 4;
+
+    Rectangle source = {
+        frame * frameWidth, frameHeight,
+        frameWidth, -frameHeight       // negative height = flip vertically
+    };
+    Rectangle dest = bounds();
+    DrawTexturePro(texture, source, dest, {0, 0}, 0.0f, WHITE);
+}
+
+void Enemy::TakeDamage(int amount) {
+    health -= amount;
+    if (health <= 0) active = false;
+}
+```
+
+This is the same draw logic you had in `DrawEnemies`, but now each Enemy owns
+its own `animTimer` — so enemies no longer all flicker in sync. (Remember
+Homework 4 from Chapter 06? This solves it by design.)
+
+---
+
+## Part 6 — Convert `Bullet` to inherit from `Entity`
+
+### `Bullet.h` — the new version
+
+Replace the entire file:
+
+```cpp
+#pragma once
+#include "Entity.h"
+
+class Bullet : public Entity {
+public:
+    int damage = 1;
+
+    Bullet(Texture2D texture, Vector2 start, float speed);
+
+    void Update(float dt) override;
+    void Draw() const override;
+    EntityKind kind() const override { return EntityKind::Bullet; }
+
+private:
+    Texture2D texture;
+    float speed;
+};
+```
+
+### `Bullet.cpp` — the new version
+
+Replace the entire file:
+
+```cpp
+#include "Bullet.h"
+#include "Sprite.h"
+
+Bullet::Bullet(Texture2D texture, Vector2 start, float speed)
+    : texture(texture), speed(speed)
+{
+    position = start;
+    size = GetFrameSize(texture, 1.0f, 2.0f);  // 1 frame, 2x scale
+}
+
+void Bullet::Update(float dt) {
+    position.y -= speed * dt;            // fly up
+    if (position.y + size.y < 0.0f) active = false;  // left the top
+}
+
+void Bullet::Draw() const {
+    Rectangle source = {
+        0.0f, 0.0f,
+        (float)texture.width, (float)texture.height
+    };
+    Rectangle dest = bounds();
     DrawTexturePro(texture, source, dest, {0, 0}, 0.0f, WHITE);
 }
 ```
 
-Notice: `Update` and `Draw` only describe **this one enemy's rules**. The loop
-that runs them will not know which class it is. That is the whole point.
-
-Mirror this pattern for the other two children — the shape is identical, only
-the behavior differs.
-
-**Player.h / Player.cpp** — arrow keys, clamps to the window edges, stores
-`screenW`, `screenH`, `speed`, plus `animTimer` for the flame.
-
-**Bullet.h / Bullet.cpp** — a `damage` value (say `1`), moves upward, turns
-`active = false` off the top. Its `size` also comes from `GetFrameSize`.
-
-The thing to *feel*: before, `UpdateEnemies`, `UpdateBullets`, `DrawPlayer`, ...
-were separate functions you had to call one by one. Now every concrete class
-owns its behavior, and the game loop just says "update all" and "draw all".
+Bullet is the simplest child — no animation, no health. It moves up, draws
+itself, and dies when it leaves the screen.
 
 ---
 
-## Part 5 — The container: polymorphism in practice
+## Part 7 — The `Game` class
 
-Because all three are `Entity`, a Game can hold them in one container:
+Now you need something to own the window, the textures, the entity list, and
+the game loop. That is the `Game` class. It replaces the god function in
+`main.cpp`.
 
-```cpp
-std::vector<std::unique_ptr<Entity>> things;  // needs #include <memory>
+### What is inside `Game`?
+
+Before you write code, here is everything the `Game` class will hold:
+
+```
+Fields:
+  screenW, screenH        — window size (float)
+  playerTexture           — Texture2D
+  enemyTexture            — Texture2D
+  bulletTexture           — Texture2D
+  bgTexture               — Texture2D
+  things                  — std::vector<std::unique_ptr<Entity>>  (ALL entities)
+  player                  — Player*  (raw pointer into `things`, for input/shooting)
+  spawnTimer              — float
+  spawnInterval           — float
+  fireTimer               — float
+  gameTime                — float
+
+Methods:
+  Game()                  — create window, load textures, create the player
+  ~Game()                 — unload textures, close window
+  Run()                   — the game loop: while (!WindowShouldClose())
+  SpawnEnemies(float dt)  — the enemy spawner
+  FireBullets(float dt)   — the bullet spawner
+  ResolveCollisions()     — bullet vs enemy, enemy vs player
+  RemoveDead()            — erase inactive entities
 ```
 
-Why `std::unique_ptr<Entity>` instead of raw `Entity*`? **Ownership.** When a
-`unique_ptr` leaves scope it `delete`s its object *through the base pointer* —
-which is why the virtual destructor existed above. No manual delete, no leaks.
+### `Game.h`
 
-Adding objects:
+Create a new file `Game.h`:
 
 ```cpp
-things.push_back(std::make_unique<Bullet>(bulletTexture, pos, 500.0f));
-things.push_back(std::make_unique<Enemy>(enemyTexture, start, health, speed));
+#pragma once
+#include "Entity.h"
+#include "Player.h"
+#include <memory>
+#include <vector>
+
+class Game {
+public:
+    Game();
+    ~Game();
+    void Run();
+
+private:
+    void SpawnEnemies(float dt);
+    void FireBullets(float dt);
+    void ResolveCollisions();
+    void RemoveDead();
+
+    float screenW = 800.0f;
+    float screenH = 450.0f;
+
+    Texture2D playerTexture{};
+    Texture2D enemyTexture{};
+    Texture2D bulletTexture{};
+    Texture2D bgTexture{};
+
+    std::vector<std::unique_ptr<Entity>> things;
+    Player* player = nullptr;   // points into `things` — do NOT delete
+
+    float spawnTimer = 0.0f;
+    float spawnInterval = 2.0f;
+    float fireTimer = 0.0f;
+    float gameTime = 0.0f;
+};
 ```
 
-Running the whole field:
+**New concept: `std::unique_ptr<Entity>`**
+
+In the old code you had three separate vectors:
 
 ```cpp
-// UPDATE
-for (auto &thing : things) if (thing->active) thing->Update(dt);
-
-// DRAW
-for (auto &thing : things) if (thing->active) thing->Draw();
+std::vector<Bullet> bullets;
+std::vector<Enemy>  enemies;
+Player player;
 ```
 
-That tiny double loop is where "abstract class" stops being a buzzword.
-**Liskov (L)** makes it legal: every subclass behaves enough like `Entity` that
-driving the field with two lines is correct. **Single Responsibility (S)**
-makes it possible: each class knows only its own Update/Draw. And **Open/Closed
-(O)** is what comes next.
+Now you want one vector that can hold Players, Enemies, and Bullets together.
+But `std::vector<Entity>` will not work — `Entity` is abstract (you cannot
+create one), and even if you could, storing a derived class by value would
+**slice** it (lose the derived data).
+
+The solution is to store pointers to the heap:
+
+```cpp
+std::vector<std::unique_ptr<Entity>> things;
+```
+
+- `std::unique_ptr<Entity>` is a smart pointer that **owns** one Entity on the
+  heap. When the unique_ptr is destroyed, it automatically `delete`s the Entity.
+  No manual `delete`, no leaks.
+- Because it is a pointer to `Entity`, it can point to any subclass: `Player`,
+  `Enemy`, or `Bullet`.
+- You create them with `std::make_unique<Enemy>(…)` — explained below.
+
+**Why `Player* player`?**
+
+The player is special — you need to check keyboard input and fire bullets from
+its position. So you keep a raw (non-owning) pointer to the Player inside
+`things`. The `unique_ptr` in the vector owns it; this raw pointer just lets
+you find it quickly.
+
+### `Game.cpp`
+
+Create a new file `Game.cpp`:
+
+```cpp
+#include "Game.h"
+#include "Bullet.h"
+#include "Enemy.h"
+#include "HUD.h"
+#include "Sprite.h"
+
+// ─── Constructor: create window, load textures, make the player ───
+
+Game::Game() {
+    InitWindow(screenW, screenH, "Space Shooter");
+    SetTargetFPS(144);
+
+    playerTexture = LoadTexture(
+        "assets/spaceships/spr_spaceship_01_animation.png");
+    enemyTexture = LoadTexture(
+        "assets/enemy_spaceships/spr_enemy_spaceship_01_animation.png");
+    bulletTexture = LoadTexture(
+        "assets/spaceships/bullets/spr_spaceship_bullet_02.png");
+    bgTexture = LoadTexture(
+        "assets/backgrounds/spr_background_01.png");
+
+    if (playerTexture.id == 0)
+        TraceLog(LOG_WARNING, "Could not load player texture!");
+
+    // Create the player and add it to the entity list.
+    auto p = std::make_unique<Player>(
+        playerTexture, screenW, screenH, 200.0f);
+    player = p.get();       // save a raw pointer before we move it
+    things.push_back(std::move(p));
+}
+
+// ─── Destructor: unload textures, close window ───
+
+Game::~Game() {
+    things.clear();         // destroy all entities before unloading textures
+    UnloadTexture(playerTexture);
+    UnloadTexture(enemyTexture);
+    UnloadTexture(bulletTexture);
+    UnloadTexture(bgTexture);
+    CloseWindow();
+}
+
+// ─── The game loop ───
+
+void Game::Run() {
+    while (!WindowShouldClose()) {
+        float dt = GetFrameTime();
+        gameTime += dt;
+
+        // --- UPDATE ---
+        SpawnEnemies(dt);
+        FireBullets(dt);
+
+        for (auto& thing : things) {
+            if (thing->active) thing->Update(dt);
+        }
+
+        ResolveCollisions();
+        RemoveDead();
+
+        // --- DRAW ---
+        BeginDrawing();
+        ClearBackground(BLACK);
+
+        DrawTexturePro(
+            bgTexture,
+            {0, 0, 256, 256},
+            {0, 0, screenW, screenH},
+            {0, 0}, 0.0f, WHITE);
+
+        for (auto& thing : things) {
+            if (thing->active) thing->Draw();
+        }
+
+        int bulletCount = 0;
+        for (auto& thing : things) {
+            if (thing->kind() == EntityKind::Bullet && thing->active)
+                bulletCount++;
+        }
+        DrawBulletCount(bulletCount);
+        DrawSpeed((int)200);
+        DrawFPS(750, 10);
+
+        EndDrawing();
+    }
+}
+
+// ─── Enemy spawner ───
+
+void Game::SpawnEnemies(float dt) {
+    spawnTimer += dt;
+    if (spawnTimer < spawnInterval) return;
+    spawnTimer = 0.0f;
+
+    float x = (float)GetRandomValue(0, 760);
+    float speed = (float)GetRandomValue(80, (int)(200 + gameTime * 5.0f));
+    int health = GetRandomValue(2, 8);
+
+    things.push_back(std::make_unique<Enemy>(
+        enemyTexture, Vector2{x, -30.0f}, health, speed));
+}
+
+// ─── Bullet spawner ───
+
+void Game::FireBullets(float dt) {
+    fireTimer += dt;
+    if (!IsKeyDown(KEY_X) || fireTimer < 0.15f) return;
+    fireTimer = 0.0f;
+
+    float bulletX = player->position.x + player->size.x / 2.0f;
+    Vector2 bulletSize = GetFrameSize(bulletTexture, 1.0f, 2.0f);
+    bulletX -= bulletSize.x / 2.0f;  // center on the player
+
+    things.push_back(std::make_unique<Bullet>(
+        bulletTexture, Vector2{bulletX, player->position.y}, 500.0f));
+}
+
+// ─── Collision ───
+
+void Game::ResolveCollisions() {
+    for (auto& a : things) {
+        if (!a->active) continue;
+        for (auto& b : things) {
+            if (!b->active) continue;
+            if (a.get() == b.get()) continue;  // same object
+
+            if (!CheckCollisionRecs(a->bounds(), b->bounds())) continue;
+
+            // Bullet hits Enemy
+            if (a->kind() == EntityKind::Bullet &&
+                b->kind() == EntityKind::Enemy)
+            {
+                Bullet& bullet = static_cast<Bullet&>(*a);
+                Enemy&  enemy  = static_cast<Enemy&>(*b);
+                enemy.TakeDamage(bullet.damage);
+                a->active = false;  // bullet is consumed
+            }
+
+            // Enemy hits Player
+            if (a->kind() == EntityKind::Enemy &&
+                b->kind() == EntityKind::Player)
+            {
+                static_cast<Player&>(*b).TakeDamage(1);
+                a->active = false;  // enemy is consumed
+            }
+        }
+    }
+}
+
+// ─── Remove dead entities ───
+
+void Game::RemoveDead() {
+    things.erase(
+        std::remove_if(things.begin(), things.end(),
+            [](const std::unique_ptr<Entity>& e) { return !e->active; }),
+        things.end());
+}
+```
+
+This is the longest file in the project. But every method does **one job** — the
+**S** in SOLID. Read each section's comment to see what it does.
+
+### Three things to understand
+
+**1. `std::make_unique<Enemy>(…)` — creating entities on the heap**
+
+```cpp
+things.push_back(std::make_unique<Enemy>(
+    enemyTexture, Vector2{x, -30.0f}, health, speed));
+```
+
+`std::make_unique<Enemy>(…)` creates a `new Enemy(…)` on the heap and wraps it
+in a `unique_ptr`. When this `unique_ptr` is removed from the vector (by
+`RemoveDead` or when `Game` is destroyed), the Enemy is automatically deleted.
+
+**2. `static_cast<Enemy&>(*b)` — safe because of the `kind()` check**
+
+In `ResolveCollisions`, we already checked `b->kind() == EntityKind::Enemy`
+before casting. We *know* it is an Enemy, so `static_cast` is correct and fast.
+
+Do **not** use `dynamic_cast` here. It is slower and gives you nothing extra
+when you already have the kind tag.
+
+**3. The erase-remove idiom in `RemoveDead()`**
+
+You cannot erase items from a vector while looping forward — it shifts
+everything and you skip items (you learned this in Chapter 05). The
+erase-remove idiom solves this:
+
+```cpp
+things.erase(
+    std::remove_if(things.begin(), things.end(),
+        [](const std::unique_ptr<Entity>& e) { return !e->active; }),
+    things.end());
+```
+
+- `std::remove_if` moves all the "dead" items to the end of the vector and
+  returns an iterator to where they start.
+- `.erase(…)` chops off that tail.
+- The `[](…){ return !e->active; }` part is a **lambda** — a small inline
+  function. It says "remove the ones that are not active."
 
 ---
 
-## Part 6 — O, L and D, felt in your hands
+## Part 8 — Collision and the `kind()` tag
 
-### Open/Closed: add an enemy without editing the loop
+Collision is the one place where "just use the base class" does **not** cleanly
+work. Why?
 
-Write a subclass that changes only the movement:
+A collision is an interaction between **two specific kinds** — bullet vs enemy
+is different from enemy vs player. The *effect* depends on which pair collided.
+That is not something `Entity::Update()` can handle alone.
+
+The solution is the `kind()` tag:
 
 ```cpp
-// ZigzagEnemy.h — finished version
+enum class EntityKind { Player, Enemy, Bullet };
+```
+
+Each subclass returns its own kind:
+
+```cpp
+// In Enemy:
+EntityKind kind() const override { return EntityKind::Enemy; }
+```
+
+Then `ResolveCollisions` checks the pair:
+
+```cpp
+if (a->kind() == EntityKind::Bullet && b->kind() == EntityKind::Enemy) {
+    // bullet hit enemy — deal damage, consume bullet
+}
+```
+
+**Three rules for collision:**
+
+1. **Use `kind()` + `static_cast`, not `dynamic_cast`.** The tag already tells
+   you the type. `static_cast` is fast and obvious.
+2. **Handle only the pairs that matter.** Bullet-vs-Enemy, Enemy-vs-Player.
+   Everything else (Bullet-vs-Bullet, Player-vs-Player) is ignored.
+3. **Only mark things as dead during collision** (`active = false`). Do not
+   erase from the vector while looping. `RemoveDead()` handles that afterwards.
+
+This is honestly where abstraction ends. Collision is a **relationship** between
+two concrete types — it cannot live inside one base class. Real game engines
+handle it the same way: a tag or layer system separate from the class hierarchy.
+
+---
+
+## Part 9 — Shrink `main.cpp` to 3 lines
+
+Replace the entire `main.cpp`:
+
+```cpp
+#include "Game.h"
+
+int main() {
+    Game game;
+    game.Run();
+    return 0;
+}
+```
+
+That is it. The `Game` constructor creates the window and loads textures.
+`Run()` runs the game loop. The `Game` destructor unloads everything.
+
+This is **S** (Single Responsibility) at the highest level — `main()` does one
+thing: start the game.
+
+---
+
+## Part 10 — Build and run
+
+Your file structure should now look like this:
+
+```
+space-shooter/
+├── main.cpp            ← 3 lines
+├── Game.h              ← NEW — game loop, spawners, collision
+├── Game.cpp            ← NEW
+├── Entity.h            ← NEW — abstract base class
+├── Player.h            ← CHANGED — now inherits from Entity
+├── Player.cpp          ← CHANGED
+├── Enemy.h             ← CHANGED — now inherits from Entity
+├── Enemy.cpp           ← CHANGED
+├── Bullet.h            ← CHANGED — now inherits from Entity
+├── Bullet.cpp          ← CHANGED
+├── Sprite.h/.cpp       ← unchanged
+├── HUD.h/.cpp          ← unchanged
+├── Makefile            ← unchanged (wildcard *.cpp picks up new files)
+└── assets/
+```
+
+Build and run. The game should play exactly the same — same enemies falling,
+same bullets shooting, same sprites. The difference is entirely in how the code
+is organized.
+
+If you get a linker error about undefined `Game::…`, make sure `Game.cpp` is
+being compiled. If your Makefile uses `wildcard *.cpp`, it should be automatic.
+
+---
+
+## Part 11 — Feel Open/Closed: add `ZigzagEnemy`
+
+Now feel the payoff. Add a new enemy type that moves side to side as it falls.
+You will write **one new file** and change **zero lines** in the game loop.
+
+### `ZigzagEnemy.h`
+
+Create a new file:
+
+```cpp
 #pragma once
 #include "Enemy.h"
 
 class ZigzagEnemy : public Enemy {
 public:
-    ZigzagEnemy(Texture2D texture, Vector2 start, int health, float fallSpeed)
-        : Enemy(texture, start, health, fallSpeed), fallSpeed(fallSpeed),
+    ZigzagEnemy(Texture2D texture, Vector2 start, int health, float speed)
+        : Enemy(texture, start, health, speed),
           moveRight(GetRandomValue(0, 1) == 1) {}
 
     void Update(float dt) override {
-        position.y += fallSpeed * dt;
+        Enemy::Update(dt);  // still fall down + animate
         position.x += 60.0f * dt * (moveRight ? 1.0f : -1.0f);
         if (position.x < 0.0f) moveRight = true;
         if (position.x > 760.0f) moveRight = false;
     }
 
 private:
-    float fallSpeed;
     bool moveRight;
 };
 ```
 
-Note we *added our own* `fallSpeed` / `moveRight` rather than tapping into
-`Enemy`'s private `speed` — encapsulation keeps a child from poking into the
-parent's guts. (A cleaner version would give `Enemy` a `protected` speed, but
-that is a design taste you can explore later.)
-
-Now spawn plain `Enemy` or `ZigzagEnemy` — the **game loop does not change one
-line**; it still says `thing->Update()`. That is **O**: closed to modification
-(you never edit the loop for a new kind) and open to extension (you just add a
-class). Before SOLID, a new enemy meant editing `UpdateEnemies` and adding a
-branch.
-
-**L in action:** `ZigzagEnemy` lives happily in `vector<unique_ptr<Entity>>`
-because it obeys the `Entity` contract. If its `Draw` depended on something a
-plain `Enemy` didn't provide, the loop would break — that is the Liskov
-violation to avoid.
-
-**D in action:** the loop deals with `Entity`, never naming `ZigzagEnemy`. The
-high-level Game depends on the abstraction, not the concrete class.
-
----
-
-## Part 7 — The wall: collision is *not* a single-class concern
-
-Now the honest part — and the true reason abstraction "never fit" before.
-
-Collision is the one place "just make it a base class" **does not** cleanly
-work. A collision is an *interaction between two things of different kinds*.
-`Entity` can give you the rectangle, but the **effect** (bullet → enemy takes
-damage; enemy → player loses a life) depends on the exact pair of kinds.
-
-The cleanest, engine-honest solution is a **type tag** + `static_cast`:
+Now spawn a mix in `Game::SpawnEnemies`:
 
 ```cpp
-void Game::ResolveCollisions() {
-    for (auto &a : things) {
-        for (auto &b : things) {
-            if (a.get() == b.get()) continue;                    // same object
-            if (!a->active || !b->active) continue;
-            if (a->kind() == EntityKind::Bullet &&
-                b->kind() == EntityKind::Enemy) {
-                Enemy &enemy = static_cast<Enemy &>(*b);
-                enemy.TakeDamage(static_cast<Bullet &>(*a).damage);
-                a->active = false;                // bullet is consumed
-            } else if (a->kind() == EntityKind::Enemy &&
-                       b->kind() == EntityKind::Player) {
-                static_cast<Player &>(*b).TakeDamage(1);
-                a->active = false;
-            }
-        }
+void Game::SpawnEnemies(float dt) {
+    spawnTimer += dt;
+    if (spawnTimer < spawnInterval) return;
+    spawnTimer = 0.0f;
+
+    float x = (float)GetRandomValue(0, 760);
+    float speed = (float)GetRandomValue(80, (int)(200 + gameTime * 5.0f));
+    int health = GetRandomValue(2, 8);
+
+    // 50% chance of zigzag
+    if (GetRandomValue(0, 1) == 0) {
+        things.push_back(std::make_unique<Enemy>(
+            enemyTexture, Vector2{x, -30.0f}, health, speed));
+    } else {
+        things.push_back(std::make_unique<ZigzagEnemy>(
+            enemyTexture, Vector2{x, -30.0f}, health, speed));
     }
 }
 ```
 
-Three rules that keep this from becoming a kitchen sink:
+The `Run()` loop — the Update/Draw loops — **did not change at all.** The new
+enemy type just works because it is an `Entity`. That is **O** (Open/Closed):
+open for extension (new class), closed for modification (no loop edits).
 
-1. **Use the `kind()` tag, not `dynamic_cast`.** The tag already tells you the
-   type, so `static_cast` is correct, fast and obvious. `dynamic_cast` is slower
-   and lures you into a messy catch-all.
-2. Handle only the pairs that matter (here: bullet-vs-enemy, enemy-vs-player);
-   everything else is ignored, cheaply.
-3. This function only **marks** (`active = false`) — it never erases while
-   iterating. Removal happens afterwards (see Mistake 5).
-
-**Collision is legitimately where an abstraction ends.** Real engines keep
-"which kinds interact" (a table/tag) separate from "how an object moves" (the
-class hierarchy), and that separation is the pay-off of **S**. And it is the
-true reason "abstract class" felt impossible earlier: Update/Draw are easy, but
-the damage is a relationship between two concrete types — it cannot live inside
-one base class.
-
----
-
-## Part 8 — The thin-base rule (I)
-
-The whole base, for the record:
-
-```cpp
-class Entity {
-public:
-    Vector2 position{};
-    Vector2 size{};
-    bool active = true;
-
-    virtual ~Entity() = default;
-    virtual void Update(float dt) = 0;
-    virtual void Draw() const = 0;
-    virtual Rectangle bounds() const;
-    virtual EntityKind kind() const = 0;
-};
-```
-
-That is it: data + three virtuals. **Nothing about bullets, nothing about
-enemies.** The moment you pull Player-only or Enemy-only fields up here "to make
-it easier", you have broken **I**:
-
-- the base must NOT hold `health` (a Power-Up / Bullet would have to fake it);
-- must NOT hold `texture` (each child owns its own draw identity);
-- must NOT hold `speed` (a static Power-Up has no speed).
-
-If only *some* children need a member, the base is not its place. Ask instead
-"who really needs it?" and give it at the right level — a small seam, not a
-fat base.
-
----
-
-## Part 9 — `main.cpp` shrinks to three honest lines
-
-After all of that, `main.cpp`'s only job is "start the game". This is **S** at
-its biggest level:
-
-```cpp
-#include "Game.h"
-
-int main() {
-    Game game;     // loads textures, builds the player, in the constructor
-    game.Run();    // the whole loop: window, update, draw, collisions
-    return 0;
-}
-```
-
-The `Game` class owns the window, the textures, the spawner timers, and the
-field. It no longer names every variable and type each frame — it tells the
-family to Update and Draw.
-
----
-
-## The files after
-
-```
-space-shooter/
-├── main.cpp            ← 3 lines: make a Game, run it
-├── Game.h/.cpp         ← window, textures, spawner, loop, collisions
-├── Entity.h/.cpp       ← abstract base (kind, bounds, update, draw)
-├── Player.h/.cpp       ← concrete
-├── Enemy.h/.cpp        ← concrete, base of ZigzagEnemy
-├── ZigzagEnemy.h/.cpp  ← new, from Enemy (O / L demo)
-├── Bullet.h/.cpp       ← concrete
-├── Sprite.h/.cpp       ← GetFrameSize  (from ch07)
-├── HUD.h/.cpp
-└── Makefile            ← no change (wildcard *.cpp)
-```
+And it works because of **L** (Liskov): a `ZigzagEnemy` behaves like an
+`Entity`, so the loop handles it correctly.
 
 ---
 
 ## Common Mistakes
 
 ### Mistake 1 — Abstraction theatre
-Make `Entity`, but every caller still writes `if (type == "Zigzag")`. If you
-keep name-checking concrete types all over, the abstraction gave you nothing.
-Drive the loop through the interface; route only genuine collision-pairs (by
-tag) outside it.
+
+You make `Entity` but then write `if (thing->kind() == EntityKind::Enemy)` in
+the update loop. If you are checking types everywhere, the abstraction gave you
+nothing. The only place you should check `kind()` is collision — everywhere else,
+use the interface (`Update`, `Draw`).
 
 ### Mistake 2 — Missing the virtual destructor
-`std::unique_ptr<Entity>` calls `delete thing` where `thing` is an `Entity*`.
-Without a virtual destructor on the base, deleting a `Bullet` that way is
-undefined behavior. Rule: **any polymorphic class gets a virtual destructor.**
 
-### Mistake 3 — A fat base class
-Pulling `health`, `texture`, `speed` up into `Entity` "so it's easier" forces
-every child to drag along fields it never uses. Keep it lean (the Part 8 rule).
+`std::unique_ptr<Entity>` calls `delete` through an `Entity*`. Without
+`virtual ~Entity()`, the subclass destructor never runs — that is undefined
+behavior. **Any polymorphic base class needs a virtual destructor.**
 
-### Mistake 4 — `dynamic_cast` everywhere
-Prefer the `kind()` tag + `static_cast` for collisions. It reads clearly and is
-fast. `dynamic_cast` is legitimate in rare cases; as a habit it is a smell.
+### Mistake 3 — Fat base class
+
+Pulling `health`, `texture`, `speed` into `Entity` because "it's easier" forces
+every child to carry fields it does not use. A Bullet has no health. A static
+PowerUp has no speed. Keep the base thin — only what truly every entity shares.
+
+### Mistake 4 — `dynamic_cast` habit
+
+`dynamic_cast` is slow and tempting. Use the `kind()` tag + `static_cast` for
+collision. It is faster, and the tag already tells you the type.
 
 ### Mistake 5 — Erasing while iterating
-Removing an item from a `vector` mid-loop shifts everything and you walk off the
-end → crash. Pattern: **mark** (`active = false`) during the loop, **erase**
-afterwards:
 
-```cpp
-things.erase(
-    std::remove_if(things.begin(), things.end(),
-                   [](const std::unique_ptr<Entity> &e) { return !e->active; }),
-    things.end());
-```
+Never erase from a vector while looping forward through it. Mark dead entities
+(`active = false`) during the loop, then erase them all at once afterwards with
+the erase-remove idiom. You learned this in Chapter 05 and it still applies.
 
 ---
 
@@ -470,36 +984,39 @@ things.erase(
 
 Build and run after each one.
 
-**Homework 1 — Smallest taste first.** Make a tiny scratch file: `Entity` with
-`class Square : Entity` and `class Circle : Entity`, a `vector<unique_ptr<Entity>>`,
-and the two-line Update/Draw loop. Confirm `Entity e;` won't compile — that is
-your abstract class working. This single exercise makes "abstract class" stop
-scaring you.
+**Homework 1 — The full migration.**
+Implement everything in this chapter. Replace all the old struct + free function
+code with the new Entity/Player/Enemy/Bullet/Game classes. The game must play
+identically. Commit when it compiles.
 
-**Homework 2 — The big migration (the whole chapter).** Move Player, Enemy,
-Bullet onto the `Entity` base; give `Game` the loop, the spawners and the
-collision pass; shrink `main.cpp` to 3 lines. Gameplay identical. Commit at the
-moment it compiles so you can diff.
+**Homework 2 — Add `ZigzagEnemy`.**
+Follow Part 11. Spawn a mix of plain and zigzag enemies. Confirm the game loop
+did not change. That is Open/Closed.
 
-**Homework 3 — Feel Open/Closed.** Add `ZigzagEnemy`. Spawn a mix of `Enemy`
-and `ZigzagEnemy`. The loop must not change. If you had to edit `Game` to fit
-it in, you introduced a leak (usually a fat base or a hard-coded cast).
+**Homework 3 — Add `ArmoredEnemy`.**
+Create `class ArmoredEnemy : public Enemy`. It ignores the first hit for 2
+seconds after spawning (an `armorTimer` checked against the elapsed time).
+`ResolveCollisions` still uses only `Enemy&` — the `TakeDamage` override in
+`ArmoredEnemy` handles the armor logic. That is **L** (Liskov): swap in a new
+subclass and the collision code stays correct.
 
-**Homework 4 — Feel Liskov.** Add `class ArmoredEnemy : public Enemy` that
-ignores damage for a couple of seconds after the first hit (an `armorTimer`,
-checked with `GetTime()`). `ResolveCollisions` still uses only `Enemy`. That is L:
-swap in new kinds freely and the loop stays correct.
+**Homework 4 — Add `PowerUp`.**
+Create `class PowerUp : public Entity`. It falls slowly and gives the player a
+speed boost on contact. It has no `health`. If you catch yourself adding
+`health` to `Entity` "just for the PowerUp", stop — you are breaking **I**
+(Interface Segregation). Keep the base thin.
 
-**Homework 5 — The I promise.** Add `class PowerUp : public Entity` (e.g. a
-shield that fades over time). It needs *no* health. If you catch yourself adding
-`health` to the base "just for the Power-Up", you are breaking I — keep the
-base lean.
+**Homework 5 — Feel the old way.**
+Before deleting your git history, look at the old `main.cpp` (use `git diff`
+or `git stash`). Count the lines. Count the lines in the new `main.cpp`. Count
+how many files you would need to edit to add a new enemy type in the old code
+vs the new code. That difference is what SOLID gives you.
 
 ---
 
 ## Next
 
 **Chapter 08 — Sound & Music.** Now that entities sit behind a single
-interface, "adding things that move and draw" is cheap. Next: "things that make
-sound" — `InitAudioDevice`, `LoadSound`, `PlaySound`, `LoadMusicStream`, and an
+interface, adding things that move and draw is cheap. Next: things that make
+sound — `InitAudioDevice`, `LoadSound`, `PlaySound`, `LoadMusicStream`, and an
 explosion SFX triggered from the collision pass when an entity dies.

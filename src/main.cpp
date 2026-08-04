@@ -1,32 +1,29 @@
 #include "Bullet.h"
 #include "Enemy.h"
 #include "HUD.h"
+#include "Config.h"
 #include "Player.h"
 #include "Sprite.h"
 #include "raylib.h"
 #include <vector>
 
-int main() {
-
-    constexpr float SCREEN_WIDTH = 800.0f;
-    constexpr float SCREEN_HEIGHT = 450.0f;
-    constexpr float SPRITE_SCALE = 2.0f;
-    constexpr float FRAME_COUNT = 4.0f;
-
+int main()
+{
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Space Shooter");
     SetTargetFPS(144);
 
     Texture2D playerTexture =
-        LoadTexture("assets/spaceships/spr_spaceship_01_animation.png");
+        LoadTexture("../assets/spaceships/spr_spaceship_01_animation.png");
     Texture2D enemyTexture = LoadTexture(
-        "assets/enemy_spaceships/spr_enemy_spaceship_01_animation.png"
+        "../assets/enemy_spaceships/spr_enemy_spaceship_01_animation.png"
     );
     Texture2D bulletTexture =
-        LoadTexture("assets/spaceships/bullets/spr_spaceship_bullet_02.png");
+        LoadTexture("../assets/spaceships/bullets/spr_spaceship_bullet_02.png");
     Texture2D bgTexture =
-        LoadTexture("assets/backgrounds/spr_background_01.png");
+        LoadTexture("../assets/backgrounds/spr_background_01.png");
 
-    if (playerTexture.id == 0) {
+    if (playerTexture.id == 0)
+    {
         TraceLog(
             LOG_WARNING,
             "Could not load player texture - check the path!"
@@ -46,16 +43,18 @@ int main() {
     std::vector<Bullet> bullets;
 
     float spawnTimer = 0.0f;
-    float spawnInterval = 2.f;
     std::vector<Enemy> enemies;
 
-    while (!WindowShouldClose()) {
+    while (!WindowShouldClose())
+    {
+        float spawnInterval = 2.f;
         constexpr float frameTime = 0.1f;
         animTimer += GetFrameTime();
         const int playerFrame = static_cast<int>(animTimer / frameTime) % 4;
 
         spawnTimer += GetFrameTime();
-        if (spawnTimer >= spawnInterval) {
+        if (spawnTimer >= spawnInterval)
+        {
             gameTime = gameTime * 5.f;
 
             Enemy e{};
@@ -75,7 +74,8 @@ int main() {
         UpdatePlayer(player, SCREEN_WIDTH, SCREEN_HEIGHT);
 
         fireTimer += GetFrameTime();
-        if (IsKeyDown(KEY_X) && fireTimer >= 0.15f) {
+        if (IsKeyDown(KEY_X) && fireTimer >= 0.15f)
+        {
             Bullet b{};
             b.position.x = player.position.x + player.size.x / 2.0f - 3;
             b.position.y = player.position.y;
