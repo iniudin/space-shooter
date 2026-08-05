@@ -25,6 +25,12 @@ every key is named in exactly one file.
 > GAME_OVER — and only that state decides what happens. Input never mentions a
 > key; it always asks for an *action*.
 
+The build order matters, so it is chosen by *dependency*: first the controller
+(Part 2), because every screen below will use it. Then the state machine
+(Parts 4–10), built on top of it. Then the whole game assembled and tested
+(Parts 12–13). You never meet a function before you know the piece it depends
+on.
+
 ---
 
 ## What You Will Learn
@@ -61,17 +67,22 @@ By the end of this chapter the game has three screens and one controller:
 
 Build it in this order:
 
-1. Create `GameState.h` with the `enum class`
-2. Create `Input.h` / `Input.cpp` — the Standard Controller
-3. Rewire `Player` to use the controller (arrows)
-4. Add the `state` field and new methods to `Game`
-5. Rewrite `Run()` so each frame runs only the current state's code
-6. Implement MENU — start on X, quit on C
-7. Move gameplay into PLAYING — arrows move, X fires — and detect death
-8. Implement GAME_OVER — retry on X, back to menu on C
-9. Write `ResetGame()` — the clean-slate both transitions use
-10. Patch `RemoveDead()` so the player is never erased
-11. Build and test the whole cycle: menu → play → die → restart → quit
+1. Learn the idea: the game is a machine with states (Part 1)
+2. Build the **Standard Controller** — `Input.h` / `Input.cpp`, the foundation
+   everything below uses (Part 2)
+3. Rewire `Player` to the controller (Part 3)
+4. Create `GameState.h` — the list of states (Part 4)
+5. Wire the `state` field and new methods into `Game` (Part 5)
+6. Write `ResetGame()` — the clean-slate both transitions will call (Part 6)
+7. Rewrite `Run()` into a per-state dispatcher (Part 7)
+8. Implement MENU — start on X, quit on C (Part 8)
+9. Move gameplay into PLAYING — arrows move, X fires — and detect death
+   (Part 9)
+10. Implement GAME_OVER — retry on X, back to menu on C (Part 10)
+11. Patch `RemoveDead()` so the player is never erased (Part 11)
+12. Assemble the complete new `Game.cpp` (Part 12)
+13. Build and test the whole cycle: menu → play → die → restart → quit
+    (Part 13)
 
 ---
 
@@ -116,43 +127,7 @@ between them are precise.
 
 ---
 
-## Part 2 — `GameState.h`: the list of states
-
-A state is a value from a fixed set. C++ has exactly the right tool: an
-**enum** — a list of named constants.
-
-Create `GameState.h`:
-
-```cpp
-#pragma once
-
-// The game is always in exactly one of these states.
-// Transitions happen on events: a key press, or the player dying.
-enum class GameState {
-    MENU,       // title screen — waiting to start
-    PLAYING,    // the actual game
-    GAME_OVER,  // the player died — waiting to retry
-};
-```
-
-### Why `enum class`, not `enum`?
-
-With the old-style `enum`, the names leak into the whole file — you could not
-have another `MENU` anywhere. With `enum class` (C++11), the values live
-*inside* the enum: you write `GameState::MENU`, not `MENU`. That is explicit,
-collision-free, and impossible to mix up with a random `int` (an `int` will not
-implicitly convert to a `GameState`).
-
-> Rule: **prefer `enum class` over `enum`.** The name is longer to type and
-> worth it every time.
-
-Why a whole file for six lines? The same reason Player gets its own file
-(Chapter 03): one concept, one home. A junior can open `GameState.h` and see
-every screen the game has in six lines.
-
----
-
-## Part 3 — The Standard Controller: `Input.h` / `Input.cpp`
+## Part 2 — The Standard Controller: `Input.h` / `Input.cpp`
 
 ### The disease first
 
@@ -240,8 +215,9 @@ reads is named inside `KeyFor` — and nowhere else. Want C to confirm instead
 of X? Change two lines. That is the Chapter 06 lesson again: *single source of
 truth*. The controller is the single source of truth for the controls.
 
-**2. Edge vs level is built into the API.** You learned the difference in
-Chapter 08's menu — but now it is enforced by the function names themselves:
+**2. Edge vs level is built into the API.** You need both kinds in this
+chapter — the menu wants "pressed once", the player wants "held" — and the
+function names make you pick deliberately:
 
 - `IsActionPressed(...)` — "do this once" events (start, retry, confirm)
 - `IsActionDown(...)` — "keep doing this" actions (move, hold to fire)
@@ -260,7 +236,7 @@ switch". You cannot add an action and forget its key.
 
 ---
 
-## Part 4 — Rewire the Player to the controller
+## Part 3 — Rewire the Player to the controller
 
 Open `Player.cpp`. It is the only gameplay file that reads keys directly.
 Include the controller and replace every `IsKeyDown(KEY_...)` with an action:
@@ -295,6 +271,42 @@ void Player::Update(float deltaTime) {
 `Player.h` does not change at all — the controller only touches the `.cpp`
 file. Note: **a player moves with `IsActionDown`** (level trigger). Holding the
 arrow keeps you moving every frame.
+
+---
+
+## Part 4 — `GameState.h`: the list of states
+
+A state is a value from a fixed set. C++ has exactly the right tool: an
+**enum** — a list of named constants.
+
+Create `GameState.h`:
+
+```cpp
+#pragma once
+
+// The game is always in exactly one of these states.
+// Transitions happen on events: a key press, or the player dying.
+enum class GameState {
+    MENU,       // title screen — waiting to start
+    PLAYING,    // the actual game
+    GAME_OVER,  // the player died — waiting to retry
+};
+```
+
+### Why `enum class`, not `enum`?
+
+With the old-style `enum`, the names leak into the whole file — you could not
+have another `MENU` anywhere. With `enum class` (C++11), the values live
+*inside* the enum: you write `GameState::MENU`, not `MENU`. That is explicit,
+collision-free, and impossible to mix up with a random `int` (an `int` will not
+implicitly convert to a `GameState`).
+
+> Rule: **prefer `enum class` over `enum`.** The name is longer to type and
+> worth it every time.
+
+Why a whole file for six lines? The same reason Player gets its own file
+(Chapter 03): one concept, one home. A junior can open `GameState.h` and see
+every screen the game has in six lines.
 
 ---
 
@@ -368,7 +380,43 @@ switch in `Run()` boring and predictable.
 
 ---
 
-## Part 6 — Rewrite `Run()`: the dispatcher
+## Part 6 — `ResetGame()`: the clean slate
+
+Both transitions — starting from MENU and retrying from GAME_OVER — must begin
+a brand-new run. That is the job of `ResetGame()`. It is written *before* the
+states that use it, so you never meet an unexplained call:
+
+```cpp
+void Game::ResetGame() {
+    things.clear(); // delete every entity from the previous run
+
+    spawnTimer = 0.0f;
+    fireTimer = 0.0f;
+    gameTime = 0.0f;
+
+    auto p = std::make_unique<Player>(
+        playerTexture, SCREEN_WIDTH, SCREEN_HEIGHT, 200.0f);
+    player = p.get();
+    things.push_back(std::move(p));
+}
+```
+
+What it resets, and why each line matters:
+
+| Line | What it prevents |
+|---|---|
+| `things.clear()` | Leftover enemies/bullets from the last run would still be flying when you respawn. `clear()` destroys them all (the `unique_ptr`s delete them). |
+| `spawnTimer = 0.0f` | Without it, the first enemy of the new run could spawn instantly. |
+| `fireTimer = 0.0f` | Same idea for bullets. |
+| `gameTime = 0.0f` | Without it, enemies keep spawning at the *old* difficulty — the "speed grows with time" formula in `SpawnEnemies` would start mid-game. |
+| new `Player` | A fresh ship with full health and position. `Player`'s constructor sets its own position and size — that is why recreating it is enough. |
+
+Because the `Game` constructor used to duplicate this block, it can now simply
+call `ResetGame()` instead. One function, two callers, zero copy-paste.
+
+---
+
+## Part 7 — Rewrite `Run()`: the dispatcher
 
 `Run()` stops doing everything and becomes a **dispatcher** — it reads the
 current state and routes the work:
@@ -434,7 +482,7 @@ switch". The machine cannot silently forget a state.
 
 ---
 
-## Part 7 — MENU: the title screen
+## Part 8 — MENU: the title screen
 
 ### UpdateMenu — start on X, quit on C
 
@@ -499,7 +547,7 @@ warning.
 
 ---
 
-## Part 8 — PLAYING: the game you already wrote, plus death
+## Part 9 — PLAYING: the game you already wrote, plus death
 
 This is where the code you already have lives — now speaking the controller's
 language. The update block moves into a named function, `FireBullets` swaps
@@ -576,7 +624,7 @@ That is the FSM transition arrow **PLAYING → GAME_OVER**, fired by the event
 
 ---
 
-## Part 9 — GAME_OVER: retry on X, back to menu on C
+## Part 10 — GAME_OVER: retry on X, back to menu on C
 
 ```cpp
 void Game::UpdateGameOver() {
@@ -628,41 +676,6 @@ Notice what GAME_OVER does **not** do: it does not call `SpawnEnemies`,
 `FireBullets`, `Update`, or `ResolveCollisions`. The world is frozen — the
 switch only ever routes to `UpdateGameOver` and `DrawGameOver`. If an enemy
 was mid-screen when you died, it stays exactly where it was.
-
----
-
-## Part 10 — `ResetGame()`: the clean slate
-
-Both "start" transitions call `ResetGame()` before entering PLAYING:
-
-```cpp
-void Game::ResetGame() {
-    things.clear(); // delete every entity from the previous run
-
-    spawnTimer = 0.0f;
-    fireTimer = 0.0f;
-    gameTime = 0.0f;
-
-    auto p = std::make_unique<Player>(
-        playerTexture, SCREEN_WIDTH, SCREEN_HEIGHT, 200.0f);
-    player = p.get();
-    things.push_back(std::move(p));
-}
-```
-
-What it resets, and why each line matters:
-
-| Line | What it prevents |
-|---|---|
-| `things.clear()` | Leftover enemies/bullets from the last run would still be flying when you respawn. `clear()` destroys them all (the `unique_ptr`s delete them). |
-| `spawnTimer = 0.0f` | Without it, the first enemy of the new run could spawn instantly. |
-| `fireTimer = 0.0f` | Same idea for bullets. |
-| `gameTime = 0.0f` | Without it, enemies keep spawning at the *old* difficulty — the "speed grows with time" formula in `SpawnEnemies` would start mid-game. |
-| new `Player` | A fresh ship with full health and position. `Player`'s constructor sets its own position and size — that is why recreating it is enough. |
-
-Because this block was previously duplicated in the `Game` constructor, the
-constructor can now simply call `ResetGame()` instead. One function, multiple
-callers, zero copy-paste.
 
 ---
 
@@ -1094,6 +1107,15 @@ truth paying you back. Put X back when you're done.
 press X → play → die → press X → play again, or C → menu". Five minutes of
 reading `Run()` tells you the entire game's flow. That readability — one file,
 one switch, the whole game's skeleton — is what the FSM buys you.
+
+**Homework 7 — Think ahead (no code).** You have an enum + switch FSM. The
+State pattern — where each state becomes a class with its own `Enter()` /
+`Update()` / `Draw()` / `Exit()` — is the classic *upgrade* when states grow
+data and lifecycles. Do not build it now. But keep this rule in your pocket:
+**when your enum has more than ~5 values, or a state starts carrying its own
+timer/score/cursor, that is the moment the manager stops being overengineering
+and starts paying rent.** You will know it when you feel the pain of the
+switch.
 
 ---
 
