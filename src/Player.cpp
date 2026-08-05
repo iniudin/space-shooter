@@ -1,37 +1,28 @@
 #include "Player.h"
 #include "Config.h"
-#include "raylib.h"
+#include "Input.h"
 #include "Sprite.h"
+#include "raylib.h"
 
 constexpr Vector2 PLAYER_POSITION = {
     .x = 400.0f,
     .y = 400.0f,
 };
 
-Player::Player(
-    const Texture2D &texture,
-    const float screenWidth,
-    const float screenHeight,
-    const float speed
-) :
-    texture(texture),
-    screenWidth(screenWidth),
-    screenHeight(screenHeight),
-    speed(speed) {
+Player::Player(const Texture2D &texture, const float screenWidth, const float screenHeight, const float speed)
+    : texture(texture), screenWidth(screenWidth), screenHeight(screenHeight), speed(speed) {
     position = PLAYER_POSITION;
     size = GetFrameSize(texture, FRAME_COUNT, SPRITE_SCALE);
 };
 
 void Player::Update(float deltaTime) {
-    if ((IsKeyDown(KEY_UP) && position.y > 0))
+    if (IsActionDown(InputAction::MoveUp) && position.y > 0)
         position.y -= speed * deltaTime;
-    if ((IsKeyDown(KEY_DOWN) &&
-         position.y < screenHeight - size.y))
+    if (IsActionDown(InputAction::MoveDown) && position.y < screenHeight - size.y)
         position.y += speed * deltaTime;
-    if ((IsKeyDown(KEY_LEFT) && position.x > 0))
+    if (IsActionDown(InputAction::MoveLeft) && position.x > 0)
         position.x -= speed * deltaTime;
-    if ((IsKeyDown(KEY_RIGHT) &&
-         position.x < screenWidth - size.x))
+    if (IsActionDown(InputAction::MoveRight) && position.x < screenWidth - size.x)
         position.x += speed * deltaTime;
 
     animationTick += deltaTime;
