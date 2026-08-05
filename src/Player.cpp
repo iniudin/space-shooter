@@ -16,13 +16,13 @@ Player::Player(const Texture2D &texture, const float screenWidth, const float sc
 };
 
 void Player::Update(float deltaTime) {
-    if (IsActionDown(InputAction::MoveUp) && position.y > 0)
+    if (IsActionDown(InputAction::MOVE_UP) && position.y > 0)
         position.y -= speed * deltaTime;
-    if (IsActionDown(InputAction::MoveDown) && position.y < screenHeight - size.y)
+    if (IsActionDown(InputAction::MOVE_DOWN) && position.y < screenHeight - size.y)
         position.y += speed * deltaTime;
-    if (IsActionDown(InputAction::MoveLeft) && position.x > 0)
+    if (IsActionDown(InputAction::MOVE_LEFT) && position.x > 0)
         position.x -= speed * deltaTime;
-    if (IsActionDown(InputAction::MoveRight) && position.x < screenWidth - size.x)
+    if (IsActionDown(InputAction::MOVE_RIGHT) && position.x < screenWidth - size.x)
         position.x += speed * deltaTime;
 
     animationTick += deltaTime;
