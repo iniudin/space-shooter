@@ -12,7 +12,7 @@ UseTab: Never
 IndentCaseLabels: true
 
 # Force function arguments onto new lines
-ColumnLimit: 80
+ColumnLimit: 120
 AlignAfterOpenBracket: BlockIndent
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false

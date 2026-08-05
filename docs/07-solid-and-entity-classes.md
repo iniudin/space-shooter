@@ -1016,7 +1016,8 @@ vs the new code. That difference is what SOLID gives you.
 
 ## Next
 
-**Chapter 08 — Sound & Music.** Now that entities sit behind a single
-interface, adding things that move and draw is cheap. Next: things that make
-sound — `InitAudioDevice`, `LoadSound`, `PlaySound`, `LoadMusicStream`, and an
-explosion SFX triggered from the collision pass when an entity dies.
+**Chapter 08 — [Game States: Main Menu & Game Over](08-game-states.md).** Now
+that entities sit behind a single interface, adding things that move and draw
+is cheap. Next: give the game a skeleton — a `GameState` finite state machine
+with MENU, PLAYING, and GAME_OVER screens, `IsKeyPressed` vs `IsKeyDown`, and
+clean restarts. After that: sound.

@@ -17,6 +17,8 @@ add_executable(main
         src/HUD.cpp
         src/Entity.h
         src/Config.h
+        src/Game.h
+        src/Game.cpp
 )
 
 target_include_directories(main PRIVATE src ${RAYLIB_INCLUDE_DIR})
