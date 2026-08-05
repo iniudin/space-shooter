@@ -3,20 +3,31 @@
 #include <vector>
 
 #include "Entity.h"
+#include "GameState.h"
 #include "Player.h"
 
-
 class Game {
-public:
+  public:
     Game();
     ~Game();
     void Run();
 
-private:
+  private:
+    void UpdateMenu();
+    void UpdatePlaying(float deltaTime);
+    void UpdateGameOver();
+    void DrawMenu() const;
+    void DrawPlaying() const;
+    void DrawGameOver() const;
+    void ResetGame();
+
     void SpawnEnemies(float deltaTime);
     void FireBullets(float deltaTime);
     void ResolveCollisions() const;
     void RemoveDead();
+
+    GameState state = GameState::MENU;
+    bool running = true;
 
     Texture2D playerTexture{};
     Texture2D enemyTexture{};

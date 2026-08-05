@@ -1,16 +1,14 @@
 #pragma once
 #include "raylib.h"
 
-enum EntityType
-{
+enum EntityType {
     PLAYER,
     ENEMY,
     BULLET,
 };
 
-class Entity
-{
-public:
+class Entity {
+  public:
     Vector2 position{};
     Vector2 size{};
     bool active = true;
@@ -25,7 +23,6 @@ public:
     virtual void Draw() const = 0;
 };
 
-inline Rectangle Entity::bounds() const
-{
+inline Rectangle Entity::bounds() const {
     return {.x = position.x, .y = position.y, .width = size.x, .height = size.y};
 }
