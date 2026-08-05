@@ -17,6 +17,8 @@ add_executable(main
         src/HUD.cpp
         src/Entity.h
         src/Config.h
+        src/Input.h
+        src/Input.cpp
         src/Game.h
         src/Game.cpp
 )
