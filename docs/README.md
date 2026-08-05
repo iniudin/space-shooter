@@ -11,4 +11,4 @@ Learning C++ game development with raylib, from absolute zero.
 - [05 — Enemies](05-enemies.md)
 - [06 — Sprites, Animation & Sizes That Can't Lie](06-assets-and-sprite-animation.md)
 - [07 — SOLID & Abstract Entity Classes](07-solid-and-entity-classes.md)
-- [08 — Game States: Main Menu & Game Over](08-game-states.md) ← you are here
+- [08 — Game States & the Standard Controller](08-game-states.md) ← you are here
