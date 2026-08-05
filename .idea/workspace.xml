@@ -29,17 +29,8 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f41fd155-c244-470b-9937-961684747943" name="Changes" comment="refactor to oop">
-      <change beforePath="$PROJECT_DIR$/.clang-format" beforeDir="false" afterPath="$PROJECT_DIR$/.clang-format" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
+    <list default="true" id="f41fd155-c244-470b-9937-961684747943" name="Changes" comment="update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/07-solid-and-entity-classes.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/07-solid-and-entity-classes.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Bullet.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Bullet.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Player.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Player.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,61 +65,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="8.92041266805122E-68" />
-      <entry key="S2" value="1.7282088963884708E-17" />
-      <entry key="S5" value="1.9725975735785858E-7" />
-      <entry key="S10" value="4.441393468281284E-4" />
-      <entry key="S30" value="0.07650629797333268" />
-      <entry key="S60" value="0.2966866875915078" />
-      <entry key="M2" value="0.7278896341489646" />
-      <entry key="M5" value="1.5987746121786088" />
-      <entry key="M10" value="4.062587365548787" />
-      <entry key="M15" value="11.311544910950579" />
-      <entry key="M30" value="48.221126204006175" />
-      <entry key="H1" value="113.96024598574469" />
-      <entry key="H2" value="203.62132320970224" />
-      <entry key="H4" value="319.43526398054115" />
-      <entry key="D1" value="543.7455423856566" />
-      <entry key="W1" value="605.7101269511119" />
+      <entry key="MS100" value="1.0001577579138963" />
+      <entry key="MS500" value="1.1736193919706388" />
+      <entry key="S2" value="1.6455049214216801" />
+      <entry key="S5" value="1.8393824961174334" />
+      <entry key="S10" value="1.9165844016962796" />
+      <entry key="S30" value="2.045508401243813" />
+      <entry key="S60" value="2.2778301131731844" />
+      <entry key="M2" value="2.71523808274946" />
+      <entry key="M5" value="3.5911210251900463" />
+      <entry key="M10" value="6.05510295765791" />
+      <entry key="M15" value="13.299383619799995" />
+      <entry key="M30" value="50.19678460336683" />
+      <entry key="H1" value="115.93181084559804" />
+      <entry key="H2" value="205.59601369709316" />
+      <entry key="H4" value="321.41544552687714" />
+      <entry key="D1" value="545.7399268311973" />
+      <entry key="W1" value="607.7092334697961" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0000164848467417" />
-      <entry key="S5" value="1.012213457392286" />
-      <entry key="S10" value="1.1109001183700173" />
-      <entry key="S30" value="1.6205810548765804" />
-      <entry key="S60" value="2.4829249924455734" />
-      <entry key="M2" value="3.793073028625803" />
-      <entry key="M5" value="5.370040691560571" />
-      <entry key="M10" value="7.078776442697672" />
-      <entry key="M15" value="10.961800177143212" />
-      <entry key="M30" value="30.30777028287597" />
-      <entry key="H1" value="64.0784314012968" />
-      <entry key="H2" value="103.44430245255849" />
-      <entry key="H4" value="144.46232760073715" />
-      <entry key="D1" value="213.57310657412464" />
-      <entry key="W1" value="231.7190528752584" />
+      <entry key="MS100" value="1.3544549219578192E-4" />
+      <entry key="MS500" value="0.16840419710821125" />
+      <entry key="S2" value="0.640612468124375" />
+      <entry key="S5" value="0.847046784343152" />
+      <entry key="S10" value="1.0162315141507172" />
+      <entry key="S30" value="1.573173562557954" />
+      <entry key="S60" value="2.4463384476890893" />
+      <entry key="M2" value="3.7650233571441625" />
+      <entry key="M5" value="5.354120790506047" />
+      <entry key="M10" value="7.0682758642889665" />
+      <entry key="M15" value="10.950957086804989" />
+      <entry key="M30" value="30.29277679668804" />
+      <entry key="H1" value="64.06257939502396" />
+      <entry key="H2" value="103.4315064061878" />
+      <entry key="H4" value="144.45339233910968" />
+      <entry key="D1" value="213.57090486890255" />
+      <entry key="W1" value="231.71871162088087" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.010598471308184932" />
-      <entry key="MS500" value="0.40276214552437506" />
-      <entry key="S2" value="0.7966463537083059" />
-      <entry key="S5" value="0.9213620010923803" />
-      <entry key="S10" value="1.0473528646704884" />
-      <entry key="S30" value="1.6463476698401218" />
-      <entry key="S60" value="2.737246727246701" />
-      <entry key="M2" value="4.489606750905816" />
-      <entry key="M5" value="6.951849635122193" />
-      <entry key="M10" value="11.12839014084705" />
-      <entry key="M15" value="22.25597516662677" />
-      <entry key="M30" value="78.49864045540325" />
-      <entry key="H1" value="178.00532967780794" />
-      <entry key="H2" value="307.0384668648252" />
-      <entry key="H4" value="463.87851106339957" />
-      <entry key="D1" value="757.3139135677641" />
-      <entry key="W1" value="837.428444899198" />
+      <entry key="MS100" value="0.9203245316322336" />
+      <entry key="MS500" value="1.2197331068770725" />
+      <entry key="S2" value="2.146784835101758" />
+      <entry key="S5" value="2.606183973913145" />
+      <entry key="S10" value="2.872050268711185" />
+      <entry key="S30" value="3.568655804540435" />
+      <entry key="S60" value="4.682038806063566" />
+      <entry key="M2" value="6.448941946553769" />
+      <entry key="M5" value="8.928248036223817" />
+      <entry key="M10" value="13.110385158675973" />
+      <entry key="M15" value="24.232961798052674" />
+      <entry key="M30" value="80.45930724785238" />
+      <entry key="H1" value="179.96104423574405" />
+      <entry key="H2" value="309.00036139245043" />
+      <entry key="H4" value="465.84975689174087" />
+      <entry key="D1" value="759.306096084135" />
+      <entry key="W1" value="839.4272101256205" />
     </decayedShown>
   </component>
   <component name="OptimizeOnSaveOptions">
@@ -209,9 +200,21 @@
     <isAutomaticReloadCMake value="true" />
     <isAutomaticBootstrapAfterUpdate value="false" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="refactor to oop" />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor to oop" />
+    <MESSAGE value="update" />
+    <option name="LAST_COMMIT_MESSAGE" value="update" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
